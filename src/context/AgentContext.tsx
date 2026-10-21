@@ -1,0 +1,312 @@
+import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { runAgent } from '../api/agentApi';
+import { getCase, approveCaseAction, rejectCaseAction } from '../api/casesApi';
+import type { OrderDetails } from '../types/order';
+import type { ShippingDetails } from '../types/shipping';
+import type { CaseWithHistory, ProposedAction, StorePolicyMatch, CaseMessage } from '../types/case';
+import type { ToolCall, AgentRecommendation } from '../types/agent';
+import { useToast } from './ToastContext';
+
+interface AgentContextType {
+  messages: CaseMessage[];
+  toolCalls: ToolCall[];
+  currentOrder: OrderDetails | null;
+  currentShipping: ShippingDetails | null;
+  currentPolicy: StorePolicyMatch | null;
+  currentAction: ProposedAction | null;
+  currentRecommendation: AgentRecommendation | null;
+  currentCaseId: string | null;
+  isRunning: boolean;
+  activeToolIndex: number | null;
+  error: string | null;
+  triggerInvestigation: (prompt: string, orderId?: string, isVoiceInput?: boolean) => Promise<void>;
+  approveAction: (editedDraftEmail?: string) => Promise<boolean>;
+  rejectAction: (reason: string) => Promise<boolean>;
+  loadCaseIntoWorkspace: (caseId: string) => Promise<void>;
+  clearWorkspace: () => void;
+  updateProposedEmailDraft: (draft: string) => void;
+}
+
+const AgentContext = createContext<AgentContextType | undefined>(undefined);
+
+export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [messages, setMessages] = useState<CaseMessage[]>([
+    {
+      id: 'welcome-msg',
+      sender: 'agent',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      content: `Welcome to **ResolveLoop AI** (Alexa+ Resolution Assistant). I can investigate delayed orders, inspect carrier routing exceptions, interpret merchant SLA policies, generate customer reassurance emails, and queue high-impact actions for your approval.
+
+Try asking:
+> *"Investigate order KL-1042, check the shipping status and store policy, prepare a response for the customer, and schedule a follow-up tomorrow if it is still delayed."*`,
+    },
+  ]);
+
+  const [toolCalls, setToolCalls] = useState<ToolCall[]>([]);
+  const [currentOrder, setCurrentOrder] = useState<OrderDetails | null>(null);
+  const [currentShipping, setCurrentShipping] = useState<ShippingDetails | null>(null);
+  const [currentPolicy, setCurrentPolicy] = useState<StorePolicyMatch | null>(null);
+  const [currentAction, setCurrentAction] = useState<ProposedAction | null>(null);
+  const [currentRecommendation, setCurrentRecommendation] = useState<AgentRecommendation | null>(null);
+  const [currentCaseId, setCurrentCaseId] = useState<string | null>(null);
+  const [isRunning, setIsRunning] = useState<boolean>(false);
+  const [activeToolIndex, setActiveToolIndex] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const { success: toastSuccess, error: toastError, info: toastInfo } = useToast();
+
+  const clearWorkspace = useCallback(() => {
+    setMessages([
+      {
+        id: `welcome-${Date.now()}`,
+        sender: 'agent',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        content: `Workspace reset. Ready to investigate an order or customer issue. Enter an order number (e.g. **KL-1042**) or click a starter prompt below.`,
+      },
+    ]);
+    setToolCalls([]);
+    setCurrentOrder(null);
+    setCurrentShipping(null);
+    setCurrentPolicy(null);
+    setCurrentAction(null);
+    setCurrentRecommendation(null);
+    setCurrentCaseId(null);
+    setError(null);
+    setActiveToolIndex(null);
+  }, []);
+
+  const updateProposedEmailDraft = useCallback((draft: string) => {
+    setCurrentAction(prev => (prev ? { ...prev, customerEmailDraft: draft } : null));
+  }, []);
+
+  const triggerInvestigation = useCallback(
+    async (prompt: string, orderId?: string, isVoiceInput = false) => {
+      if (!prompt.trim() || isRunning) return;
+
+      setIsRunning(true);
+      setError(null);
+
+      // Add user message to conversation
+      const userMessage: CaseMessage = {
+        id: `msg-${Date.now()}`,
+        sender: 'user',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        content: prompt,
+        isVoiceInput,
+      };
+
+      setMessages(prev => [...prev, userMessage]);
+
+      try {
+        toastInfo('Agent Processing', 'ResolveLoop AI is querying telemetry and evaluating policies...');
+
+        // Make the real backend request
+        const response = await runAgent({ prompt, orderId, isVoiceInput });
+
+        // Progressively reveal tool calls for realistic UX
+        const totalSteps = response.executionSteps.length;
+        setToolCalls([]);
+
+        for (let i = 0; i < totalSteps; i++) {
+          setActiveToolIndex(i);
+          const step = response.executionSteps[i];
+
+          // Show step as running
+          setToolCalls(prev => [
+            ...prev,
+            { ...step, status: 'running' },
+          ]);
+
+          // Small stagger for readable progress
+          await new Promise(r => setTimeout(r, 450));
+
+          // Mark step completed
+          setToolCalls(prev =>
+            prev.map((s, idx) => (idx === i ? { ...step, status: 'completed' } : s))
+          );
+        }
+
+        setActiveToolIndex(null);
+
+        // Update context with backend response
+        setCurrentCaseId(response.caseId);
+        if (response.order) setCurrentOrder(response.order);
+        if (response.shipping) setCurrentShipping(response.shipping);
+        if (response.policy) setCurrentPolicy(response.policy);
+        if (response.proposedAction) setCurrentAction(response.proposedAction);
+        if (response.recommendation) setCurrentRecommendation(response.recommendation);
+
+        // Add agent response message
+        const agentMsg: CaseMessage = {
+          id: `msg-agent-${Date.now()}`,
+          sender: 'agent',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          content: response.response,
+        };
+
+        setMessages(prev => [...prev, agentMsg]);
+        toastSuccess('Investigation Complete', `Investigation finished for order ${response.orderId}. Action queued for review.`);
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : 'Failed to complete agent investigation.';
+        setError(errorMsg);
+        toastError('Agent Error', errorMsg);
+        setMessages(prev => [
+          ...prev,
+          {
+            id: `msg-err-${Date.now()}`,
+            sender: 'agent',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            content: `⚠️ An error occurred while running the investigation: ${errorMsg}`,
+          },
+        ]);
+      } finally {
+        setIsRunning(false);
+        setActiveToolIndex(null);
+      }
+    },
+    [isRunning, toastError, toastInfo, toastSuccess]
+  );
+
+  const approveAction = useCallback(
+    async (editedDraftEmail?: string): Promise<boolean> => {
+      if (!currentCaseId || !currentAction) return false;
+
+      try {
+        const result = await approveCaseAction(currentCaseId, editedDraftEmail || currentAction.customerEmailDraft);
+        if (result.success) {
+          setCurrentAction(prev => (prev ? { ...prev, status: 'approved' } : null));
+          toastSuccess('Action Approved & Dispatched', result.message);
+
+          setMessages(prev => [
+            ...prev,
+            {
+              id: `msg-appr-${Date.now()}`,
+              sender: 'system',
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              content: `✅ **Action Approved**: The customer notification email was sent and the account credit was authorized for Case ${currentCaseId}.`,
+            },
+          ]);
+          return true;
+        }
+        return false;
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : 'Failed to approve action.';
+        toastError('Approval Failed', errorMsg);
+        return false;
+      }
+    },
+    [currentCaseId, currentAction, toastSuccess, toastError]
+  );
+
+  const rejectAction = useCallback(
+    async (reason: string): Promise<boolean> => {
+      if (!currentCaseId) return false;
+
+      try {
+        const result = await rejectCaseAction(currentCaseId, reason);
+        if (result.success) {
+          setCurrentAction(prev => (prev ? { ...prev, status: 'rejected', rejectedReason: reason } : null));
+          toastInfo('Action Rejected', `Proposed action was marked rejected. Reason: "${reason}"`);
+
+          setMessages(prev => [
+            ...prev,
+            {
+              id: `msg-rej-${Date.now()}`,
+              sender: 'system',
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              content: `❌ **Action Rejected**: Store owner rejected the proposed action. Reason: *${reason}*`,
+            },
+          ]);
+          return true;
+        }
+        return false;
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : 'Failed to reject action.';
+        toastError('Rejection Failed', errorMsg);
+        return false;
+      }
+    },
+    [currentCaseId, toastInfo, toastError]
+  );
+
+  const loadCaseIntoWorkspace = useCallback(async (caseId: string) => {
+    setIsRunning(true);
+    try {
+      const caseData: CaseWithHistory | null = await getCase(caseId);
+      if (caseData) {
+        setCurrentCaseId(caseData.id);
+        if (caseData.customer) {
+          // Construct partial order if needed
+          setCurrentOrder({
+            id: caseData.orderId,
+            orderDate: caseData.createdAt,
+            status: caseData.shipping?.status === 'Delayed' ? 'Delayed' : 'Shipped',
+            totalAmount: 218.5,
+            currency: 'USD',
+            items: [
+              {
+                id: 'ITEM-1',
+                name: 'Apex Thermal Winter Parka - Navy / L',
+                sku: 'APX-PRK-NV-L',
+                quantity: 1,
+                price: 185.0,
+              },
+            ],
+            customer: caseData.customer,
+            shippingAddress: {
+              street: '742 Evergreen Terrace',
+              city: 'Springfield',
+              state: 'IL',
+              zip: '62704',
+              country: 'United States',
+            },
+            trackingNumber: caseData.shipping?.trackingNumber || 'TRK-9823412',
+            carrier: caseData.shipping?.carrier || 'FedEx',
+          });
+        }
+        if (caseData.shipping) setCurrentShipping(caseData.shipping);
+        if (caseData.policy) setCurrentPolicy(caseData.policy);
+        if (caseData.proposedAction) setCurrentAction(caseData.proposedAction);
+        if (caseData.messages && caseData.messages.length > 0) {
+          setMessages(caseData.messages);
+        }
+      }
+    } finally {
+      setIsRunning(false);
+    }
+  }, []);
+
+  return (
+    <AgentContext.Provider
+      value={{
+        messages,
+        toolCalls,
+        currentOrder,
+        currentShipping,
+        currentPolicy,
+        currentAction,
+        currentRecommendation,
+        currentCaseId,
+        isRunning,
+        activeToolIndex,
+        error,
+        triggerInvestigation,
+        approveAction,
+        rejectAction,
+        loadCaseIntoWorkspace,
+        clearWorkspace,
+        updateProposedEmailDraft,
+      }}
+    >
+      {children}
+    </AgentContext.Provider>
+  );
+};
+
+export const useAgent = (): AgentContextType => {
+  const context = useContext(AgentContext);
+  if (!context) {
+    throw new Error('useAgent must be used within an AgentProvider');
+  }
+  return context;
+};
