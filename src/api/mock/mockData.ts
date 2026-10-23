@@ -7,24 +7,24 @@ import type { DashboardData } from '../../types/dashboard';
 export const INITIAL_ORDERS: Record<string, OrderDetails> = {
   'KL-1042': {
     id: 'KL-1042',
-    orderDate: '2026-10-14T14:22:00Z',
+    orderDate: '2026-10-18T11:11:19.043676',
     status: 'Delayed',
-    totalAmount: 218.5,
+    totalAmount: 149.99,
     currency: 'USD',
     carrier: 'FedEx Priority',
-    trackingNumber: 'TRK-9823412',
+    trackingNumber: 'TRK-KL-1042',
     customer: {
-      id: 'CUST-8810',
-      name: 'Sarah Jenkins',
-      email: 'sarah.jenkins@example.com',
+      id: 'CUST-1042',
+      name: 'Sarah Connor',
+      email: 'sarah.c@example.com',
       phone: '+1 (555) 392-1084',
       tier: 'VIP',
-      ordersCount: 14,
-      lifetimeValue: 1840.0,
+      ordersCount: 1,
+      lifetimeValue: 149.99,
       csatScore: 4.9,
     },
     shippingAddress: {
-      street: '742 Evergreen Terrace',
+      street: 'Destination via Siskiyou Pass, CA Hub',
       city: 'Springfield',
       state: 'IL',
       zip: '62704',
@@ -33,17 +33,10 @@ export const INITIAL_ORDERS: Record<string, OrderDetails> = {
     items: [
       {
         id: 'ITEM-1',
-        name: 'Apex Thermal Winter Parka - Navy / L',
-        sku: 'APX-PRK-NV-L',
+        name: 'Order #KL-1042 Package',
+        sku: 'KL-1042',
         quantity: 1,
-        price: 185.0,
-      },
-      {
-        id: 'ITEM-2',
-        name: 'Merino Wool Ribbed Beanie - Heather Charcoal',
-        sku: 'MRN-BN-HCH',
-        quantity: 1,
-        price: 33.5,
+        price: 149.99,
       },
     ],
   },
@@ -156,53 +149,37 @@ export const INITIAL_ORDERS: Record<string, OrderDetails> = {
 
 export const INITIAL_SHIPPING: Record<string, ShippingDetails> = {
   'KL-1042': {
-    trackingNumber: 'TRK-9823412',
+    trackingNumber: 'TRK-KL-1042',
     carrier: 'FedEx Priority',
-    serviceLevel: 'FedEx 2-Day Priority Express',
+    serviceLevel: 'Priority Air Transit',
     status: 'Delayed',
-    estimatedDelivery: '2026-10-23T18:00:00Z',
-    originalEstimatedDelivery: '2026-10-18T18:00:00Z',
-    currentLocation: 'Chicago, IL Distribution Hub',
+    estimatedDelivery: '2026-10-24T06:48:22Z',
+    originalEstimatedDelivery: '2026-10-21T11:11:19Z',
+    currentLocation: 'Siskiyou Pass, CA',
     delayHours: 48,
     events: [
       {
-        id: 'EVT-5',
-        timestamp: '2026-10-21T08:15:00Z',
-        location: 'Chicago, IL (Midwest Hub)',
-        status: 'Severe Weather Delay',
-        description: 'Blizzard conditions in Midwest corridor halted air ramp transfer. Package secure in climate facility.',
+        id: '88018a62-f7f9-493d-b7b2-6d77ab6a64dd',
+        timestamp: '2026-10-20T07:11:19.043676',
+        location: 'Siskiyou Pass, CA',
+        status: 'Carrier Transit Exception',
+        description: 'Severe winter storm mountain pass closure; carrier transit exception and rerouting in progress. Delay estimated at 24-48 hours.',
         exception: true,
       },
       {
-        id: 'EVT-4',
-        timestamp: '2026-10-19T14:40:00Z',
-        location: 'Chicago, IL Sorting Facility',
-        status: 'Operational Hold',
-        description: 'Flight connection rescheduled due to runway ground stop.',
-        exception: true,
-      },
-      {
-        id: 'EVT-3',
-        timestamp: '2026-10-16T20:10:00Z',
-        location: 'Indianapolis, IN Hub',
-        status: 'Departed Facility',
-        description: 'Container dispatched on express transport line.',
+        id: '572c22a0-bce1-4980-90d4-c005615fd947',
+        timestamp: '2026-10-19T05:11:19.043676',
+        location: 'Portland Sorting Hub, OR',
+        status: 'In Transit',
+        description: 'Departed carrier regional sorting hub in transit to destination',
         exception: false,
       },
       {
-        id: 'EVT-2',
-        timestamp: '2026-10-15T15:30:00Z',
-        location: 'Columbus, OH Origin Terminal',
+        id: '046d42e7-397e-4718-a00c-7077ff9c627d',
+        timestamp: '2026-10-18T09:11:19.043676',
+        location: 'Seattle Fulfillment Center, WA',
         status: 'Picked Up',
-        description: 'Shipment received from merchant warehouse dock.',
-        exception: false,
-      },
-      {
-        id: 'EVT-1',
-        timestamp: '2026-10-14T16:00:00Z',
-        location: 'Columbus, OH',
-        status: 'Label Created',
-        description: 'Shipping label created and manifests uploaded.',
+        description: 'Package received and processed at carrier origin facility',
         exception: false,
       },
     ],
@@ -248,6 +225,115 @@ export const INITIAL_POLICIES: Record<string, StorePolicyMatch> = {
 };
 
 export const INITIAL_CASES: Record<string, CaseWithHistory> = {
+  'CASE-4D6142FD': {
+    id: 'CASE-4D6142FD',
+    orderId: 'KL-1042',
+    customer: INITIAL_ORDERS['KL-1042'].customer,
+    order: INITIAL_ORDERS['KL-1042'],
+    issueSummary: 'Investigate order KL-1042, check the shipping status and store policy, prepare a response for the customer, and schedule a follow-up tomorrow if it is still delayed.',
+    status: 'awaiting_approval',
+    priority: 'medium',
+    createdAt: '2026-10-23T06:48:22Z',
+    updatedAt: '2026-10-23T06:48:22Z',
+    actionRequired: true,
+    followUpId: 'FOL-875A22F0',
+    followUpDescription: 'Verify carrier transit updates for order KL-1042 and ensure delivery resolution within 24 hours.',
+    followUpDueAt: '2026-10-24T06:48:22.705240',
+    followUps: [
+      {
+        id: 'FOL-875A22F0',
+        case_id: 'CASE-4D6142FD',
+        description: 'Verify carrier transit updates for order KL-1042 and ensure delivery resolution within 24 hours.',
+        due_at: '2026-10-24T06:48:22.705240',
+        status: 'pending',
+        created_at: '2026-10-23T06:48:22',
+        completed_at: null,
+      },
+    ],
+    shipping: INITIAL_SHIPPING['KL-1042'],
+    policy: {
+      policyId: 'POL-SHIPPING-DELAY',
+      title: 'In-Transit Carrier Delay Resolution Policy',
+      category: 'shipping_sla',
+      ruleApplied: 'Order KL-1042 has documented transit delay. Under Policy POL-SHIPPING-DELAY (In-Transit Carrier Delay Resolution Policy), proactive explanation and apology email is eligible, but requires explicit merchant approval before transmission.',
+      thresholdMet: true,
+      recommendedAction: 'send_customer_email, create_follow_up, offer_concession',
+    },
+    proposedAction: {
+      id: 'ACT-3518A410',
+      type: 'customer_outreach',
+      title: 'Update regarding your Order KL-1042: Shipping Status & Resolution',
+      description: 'Proactive customer update regarding shipping transit delay. Requires merchant approval prior to transmission.',
+      cost: 0,
+      status: 'pending',
+      evidence: [
+        'Order KL-1042 has documented transit delay. Under Policy POL-SHIPPING-DELAY (In-Transit Carrier Delay Resolution Policy), proactive explanation and apology email is eligible, but requires explicit merchant approval before transmission.',
+        'External customer communication and financial concessions require merchant approval before execution.',
+        'Notify customer of carrier weather delay and provide revised delivery expectation.',
+      ],
+      customerEmailDraft: `Dear Sarah Connor,
+
+Thank you for reaching out to us. We have investigated the status of your order (KL-1042) with our carrier partners.
+
+Your package encountered an unexpected delay at Siskiyou Pass, CA due to Severe winter storm mountain pass closure; carrier transit exception and rerouting in progress. Delay estimated at 24-48 hours.. The logistics team has rerouted the shipment to prioritize safe transit, and the carrier estimates delivery within the next 24 to 48 hours.
+
+We sincerely apologize for the inconvenience this delay has caused. We are actively monitoring your shipment and will follow up with you tomorrow with the latest tracking status.
+
+If you have any immediate questions, please reply directly to this message.
+
+Warm regards,
+Customer Support Team
+ResolveLoop AI Store Support`,
+    },
+    messages: [
+      {
+        id: 'e6ab7913-0beb-4839-ac4b-877c8ec5f040',
+        sender: 'user',
+        timestamp: '06:48 AM',
+        content: 'Investigate order KL-1042, check the shipping status and store policy, prepare a response for the customer, and schedule a follow-up tomorrow if it is still delayed.',
+      },
+      {
+        id: 'aad4e97c-0001-4d4a-bc4b-2149a84da7b4',
+        sender: 'agent',
+        timestamp: '06:48 AM',
+        content: `I have investigated order **KL-1042** for customer **Sarah Connor**.
+
+### Findings:
+- **Order Status:** Delayed ($149.99 USD)
+- **Shipping Status:** Carrier transit exception at Siskiyou Pass, CA (Severe winter storm mountain pass closure; carrier transit exception and rerouting in progress. Delay estimated at 24-48 hours.)
+- **Policy Evaluation:** Order KL-1042 has documented transit delay. Under Policy POL-SHIPPING-DELAY (In-Transit Carrier Delay Resolution Policy), proactive explanation and apology email is eligible, but requires explicit merchant approval before transmission.
+
+### Actions Prepared:
+1. **Customer Email Draft:** Generated empathetic status update explaining the delay and expected delivery window. *(Awaiting your explicit merchant approval before transmission)*
+2. **Follow-Up Scheduled:** Automatic verification scheduled for tomorrow to check carrier rerouting progress.
+
+Please review and approve the pending email action below to dispatch the customer notification.`,
+      },
+    ],
+    auditTrail: [
+      {
+        id: 'AUD-C4292C24',
+        timestamp: '2026-10-23T06:48:22Z',
+        actor: 'agent',
+        action: 'Case Created Via Tool',
+        details: 'Shipping transit investigation for order KL-1042',
+      },
+      {
+        id: 'AUD-7D441180',
+        timestamp: '2026-10-23T06:48:22Z',
+        actor: 'agent',
+        action: 'Action Proposed',
+        details: 'Subject: Update regarding your Order KL-1042: Shipping Status & Resolution (Recipient: sarah.c@example.com)',
+      },
+      {
+        id: 'AUD-21F68E25',
+        timestamp: '2026-10-23T06:48:22Z',
+        actor: 'agent',
+        action: 'Follow Up Scheduled',
+        details: 'Verify carrier transit updates for order KL-1042 and ensure delivery resolution within 24 hours.',
+      },
+    ],
+  },
   'CASE-2026-1042': {
     id: 'CASE-2026-1042',
     orderId: 'KL-1042',
@@ -486,6 +572,19 @@ UrbanAura Support`,
 };
 
 export const INITIAL_FOLLOW_UPS: FollowUpTask[] = [
+  {
+    id: 'FOL-875A22F0',
+    caseId: 'CASE-4D6142FD',
+    orderId: 'KL-1042',
+    customerName: 'Sarah Connor',
+    description: 'Verify carrier transit updates for order KL-1042 and ensure delivery resolution within 24 hours.',
+    dueDate: '2026-10-24T06:48:22.705240',
+    status: 'pending',
+    priority: 'high',
+    assignedTo: 'ResolveLoop AI Agent',
+    createdAt: '2026-10-23T06:48:22',
+    isOverdue: false,
+  },
   {
     id: 'TASK-1042',
     caseId: 'CASE-2026-1042',

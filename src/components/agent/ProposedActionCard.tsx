@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { ProposedAction } from '../../types/case';
 import type { AgentRecommendation } from '../../types/agent';
+import type { FollowUp } from '../../types/backend';
 import {
   CheckCircle2,
   AlertCircle,
@@ -16,6 +17,7 @@ interface ProposedActionCardProps {
   action: ProposedAction | null;
   recommendation: AgentRecommendation | null;
   caseId: string | null;
+  followUp?: FollowUp | null;
   onApprove: (editedDraft?: string) => Promise<boolean>;
   onReject: (reason: string) => Promise<boolean>;
 }
@@ -24,6 +26,7 @@ export const ProposedActionCard: React.FC<ProposedActionCardProps> = ({
   action,
   recommendation,
   caseId,
+  followUp,
   onApprove,
   onReject,
 }) => {
@@ -125,13 +128,20 @@ export const ProposedActionCard: React.FC<ProposedActionCardProps> = ({
           )}
 
           {/* Follow-up Note */}
-          <div className="p-2 rounded-2 bg-primary-subtle text-primary-emphasis d-flex align-items-center gap-2 mb-3" style={{ fontSize: '0.75rem' }}>
-            <CalendarCheck2 size={15} className="flex-shrink-0 text-primary" />
-            <div>
-              <strong>Follow-up Scheduled: </strong>
-              <span>Automated 24h carrier check will trigger tomorrow at 09:00 AM.</span>
+          {followUp && (
+            <div className="p-2 rounded-2 bg-primary-subtle text-primary-emphasis d-flex align-items-center gap-2 mb-3" style={{ fontSize: '0.75rem' }}>
+              <CalendarCheck2 size={15} className="flex-shrink-0 text-primary" />
+              <div>
+                <strong>Follow-up Scheduled ({followUp.id}): </strong>
+                <span>
+                  {followUp.description}
+                  {followUp.due_at && (
+                    <> • Checkpoint: {new Date(followUp.due_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</>
+                  )}
+                </span>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Primary Action Button */}
           {isPending && (

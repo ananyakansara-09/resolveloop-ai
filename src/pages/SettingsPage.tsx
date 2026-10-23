@@ -29,9 +29,10 @@ export const SettingsPage: React.FC = () => {
     setError(null);
     try {
       const res = await getHealth();
-      setHealthStatus(res.status === 'ok' ? 'Operational' : 'Degraded');
+      const isOk = res.status === 'ok' || res.status === 'healthy';
+      setHealthStatus(isOk ? 'Operational' : 'Degraded');
       setLastCheckTime(new Date().toLocaleTimeString());
-      success('Health Check Passed', `API responded with status: ${res.status}. Mode: ${res.mode}`);
+      success('Health Check Passed', `API responded with status: ${res.status}. Service: ${res.service || 'ResolveLoop AI Backend'}`);
     } catch (err: unknown) {
       setHealthStatus('Offline / Unreachable');
       setError(err instanceof Error ? err.message : 'Health check failed');

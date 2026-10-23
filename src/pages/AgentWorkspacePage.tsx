@@ -18,6 +18,7 @@ export const AgentWorkspacePage: React.FC = () => {
     currentPolicy,
     currentAction,
     currentRecommendation,
+    currentFollowUp,
     currentCaseId,
     isRunning,
     triggerInvestigation,
@@ -157,6 +158,7 @@ export const AgentWorkspacePage: React.FC = () => {
                 action={currentAction}
                 recommendation={currentRecommendation}
                 caseId={currentCaseId}
+                followUp={currentFollowUp}
                 onApprove={approveAction}
                 onReject={rejectAction}
               />

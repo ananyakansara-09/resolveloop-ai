@@ -85,7 +85,22 @@ select:focus-visible {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  transition: width 0.2s ease-in-out;
+  transition: width 0.2s ease-in-out, transform 0.25s ease-in-out;
+}
+
+/* Custom dark scrollbar for sidebar navigation list */
+.app-sidebar ::-webkit-scrollbar {
+  width: 5px;
+}
+.app-sidebar ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.app-sidebar ::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 9999px;
+}
+.app-sidebar ::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
 }
 
 .app-main {
@@ -104,6 +119,26 @@ select:focus-visible {
   width: 100%;
 }
 
+/* Fixed Sidebar on Desktop Screens */
+@media (min-width: 992px) {
+  .app-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    height: 100vh;
+    z-index: 1025;
+    overflow-y: hidden;
+  }
+
+  .app-main {
+    margin-left: 270px;
+    width: calc(100% - 270px);
+    min-width: 0;
+  }
+}
+
+/* Offcanvas Sidebar on Mobile & Tablet */
 @media (max-width: 991.98px) {
   .app-sidebar {
     position: fixed;

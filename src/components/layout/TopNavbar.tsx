@@ -55,9 +55,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleSidebar }) => {
         <div className="d-none d-sm-flex align-items-center gap-2 text-secondary small">
           <Store size={16} className="text-primary" />
           <span className="fw-semibold text-dark">UrbanAura Goods</span>
-          <span className="badge bg-light text-secondary border fw-normal" style={{ fontSize: '0.7rem' }}>
-            Shopify Demo Store
-          </span>
         </div>
       </div>
 

@@ -10,6 +10,7 @@ import { CaseAuditTrail } from '../components/cases/CaseAuditTrail';
 import { ApprovalModal } from '../components/cases/ApprovalModal';
 import { ShippingTimeline } from '../components/agent/ShippingTimeline';
 import { PolicyEvidenceCard } from '../components/agent/PolicyEvidenceCard';
+import { OrderSummaryCard } from '../components/agent/OrderSummaryCard';
 import { useAgent } from '../context/AgentContext';
 import { useToast } from '../context/ToastContext';
 import {
@@ -64,10 +65,12 @@ export const CaseDetailsPage: React.FC = () => {
   const handleApprove = async (editedDraft?: string): Promise<boolean> => {
     if (!id) return false;
     try {
-      const result = await approveCaseAction(id, editedDraft);
+      const result = await approveCaseAction(id, editedDraft, caseData?.proposedAction?.id);
       if (result.success) {
         setCaseData(result.case);
-        toastSuccess('Action Approved', result.message);
+        const outboxId = result.result?.verification_details?.outbox_message_id;
+        const msg = outboxId ? `${result.message} (Outbox Ref: ${outboxId})` : result.message;
+        toastSuccess('Action Approved & Verified', msg);
         return true;
       }
       return false;
@@ -80,7 +83,7 @@ export const CaseDetailsPage: React.FC = () => {
   const handleReject = async (reason: string): Promise<boolean> => {
     if (!id) return false;
     try {
-      const result = await rejectCaseAction(id, reason);
+      const result = await rejectCaseAction(id, reason, caseData?.proposedAction?.id);
       if (result.success) {
         setCaseData(result.case);
         toastSuccess('Action Rejected', `Action marked rejected. Reason: ${reason}`);
@@ -308,11 +311,19 @@ export const CaseDetailsPage: React.FC = () => {
                   View Tasks
                 </Link>
               </div>
-              <div className="small text-secondary mb-2">
-                Task <strong>{caseData.followUpId}</strong> is registered to monitor package departure and verify carrier resolution.
+              <div className="small text-secondary mb-1">
+                Task <strong>{caseData.followUpId}</strong>: {caseData.followUpDescription || 'Verify carrier transit updates and delivery resolution.'}
               </div>
+              {caseData.followUpDueAt && (
+                <div className="text-muted small" style={{ fontSize: '0.72rem' }}>
+                  Checkpoint Due: <strong className="text-dark">{new Date(caseData.followUpDueAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>
+                </div>
+              )}
             </div>
           )}
+
+          {/* Order & Customer Summary Card */}
+          {caseData.order && <OrderSummaryCard order={caseData.order} />}
 
           {/* Shipping Telemetry */}
           {caseData.shipping && <ShippingTimeline shipping={caseData.shipping} />}

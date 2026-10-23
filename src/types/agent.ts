@@ -1,6 +1,7 @@
 import type { OrderDetails } from './order';
 import type { ShippingDetails } from './shipping';
 import type { StorePolicyMatch, ProposedAction } from './case';
+import type { FollowUp } from './backend';
 
 export type ToolExecutionStatus = 'running' | 'completed' | 'failed';
 
@@ -43,4 +44,5 @@ export interface AgentRunResponse {
   shipping?: ShippingDetails;
   policy?: StorePolicyMatch;
   proposedAction?: ProposedAction;
+  followUpDetails?: FollowUp | null;
 }

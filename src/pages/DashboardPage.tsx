@@ -5,6 +5,7 @@ import type { DashboardData } from '../types/dashboard';
 import { CasesTable } from '../components/cases/CasesTable';
 import { SkeletonLoader } from '../components/common/SkeletonLoader';
 import { ErrorAlert } from '../components/common/ErrorAlert';
+import { VoiceSimulationModal } from '../components/agent/VoiceSimulationModal';
 import { useAgent } from '../context/AgentContext';
 import {
   Layers,
@@ -15,6 +16,7 @@ import {
   Sparkles,
   ArrowRight,
   Search,
+  Mic,
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
@@ -22,6 +24,7 @@ export const DashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [quickOrderInput, setQuickOrderInput] = useState('KL-1042');
+  const [voiceModalOpen, setVoiceModalOpen] = useState(false);
 
   const navigate = useNavigate();
   const { triggerInvestigation } = useAgent();
@@ -61,6 +64,11 @@ export const DashboardPage: React.FC = () => {
       'KL-1042',
       true
     );
+  };
+
+  const handleVoiceQueryFromModal = (query: string, orderId?: string) => {
+    navigate('/assistant');
+    triggerInvestigation(query, orderId, true);
   };
 
   return (
@@ -136,6 +144,15 @@ export const DashboardPage: React.FC = () => {
                 />
               </div>
               <button
+                type="button"
+                className="btn btn-sm btn-light border text-primary d-flex align-items-center justify-content-center flex-shrink-0"
+                onClick={() => setVoiceModalOpen(true)}
+                title="Simulate Alexa+ Voice Interaction"
+                style={{ width: '34px', height: '34px', borderRadius: '6px' }}
+              >
+                <Mic size={15} />
+              </button>
+              <button
                 type="submit"
                 className="btn btn-sm btn-primary d-inline-flex align-items-center gap-1 px-3 fw-semibold flex-shrink-0"
               >
@@ -145,7 +162,7 @@ export const DashboardPage: React.FC = () => {
             </form>
 
             <div className="d-flex align-items-center justify-content-between mt-2 px-1 text-light text-opacity-75" style={{ fontSize: '0.72rem' }}>
-              <span>Try sample: <strong>KL-1042</strong> (Chicago weather delay)</span>
+              <span>Try sample: <strong>KL-1042</strong> (Siskiyou Pass weather delay)</span>
               <button
                 type="button"
                 className="btn btn-link btn-sm text-info p-0 text-decoration-none small"
@@ -296,6 +313,14 @@ export const DashboardPage: React.FC = () => {
           <CasesTable cases={data?.recentCases ?? []} />
         )}
       </div>
+
+      {/* Voice Simulation Modal */}
+      <VoiceSimulationModal
+        show={voiceModalOpen}
+        onHide={() => setVoiceModalOpen(false)}
+        onSendVoiceQuery={handleVoiceQueryFromModal}
+        initialQuery={quickOrderInput ? `Investigate order ${quickOrderInput}, check the shipping status and store policy, prepare a response for the customer, and schedule a follow-up tomorrow if it is still delayed.` : ''}
+      />
     </div>
   );
 };

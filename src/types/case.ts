@@ -1,5 +1,6 @@
-import type { CustomerInfo } from './order';
+import type { CustomerInfo, OrderDetails } from './order';
 import type { ShippingDetails } from './shipping';
+import type { FollowUp } from './backend';
 
 export type CaseStatus = 'open' | 'investigating' | 'awaiting_approval' | 'approved' | 'rejected' | 'resolved';
 
@@ -59,10 +60,14 @@ export interface Case {
 }
 
 export interface CaseWithHistory extends Case {
+  order?: OrderDetails;
   messages: CaseMessage[];
   shipping?: ShippingDetails;
   policy?: StorePolicyMatch;
   proposedAction?: ProposedAction;
   auditTrail: CaseAuditEvent[];
   followUpId?: string;
+  followUpDescription?: string;
+  followUpDueAt?: string;
+  followUps?: FollowUp[];
 }

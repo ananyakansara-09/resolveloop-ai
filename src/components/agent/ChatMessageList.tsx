@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import type { CaseMessage } from '../../types/case';
-import { Bot, User, Mic, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Bot, User, Mic, Sparkles, CheckCircle2, Volume2, VolumeX } from 'lucide-react';
+import { speakText, stopSpeaking } from '../../utils/speechService';
 
 interface ChatMessageListProps {
   messages: CaseMessage[];
@@ -8,6 +9,29 @@ interface ChatMessageListProps {
 }
 
 export const ChatMessageList: React.FC<ChatMessageListProps> = ({ messages, isRunning }) => {
+  const [currentlySpeakingId, setCurrentlySpeakingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      stopSpeaking();
+    };
+  }, []);
+
+  const handleToggleSpeech = (msgId: string, content: string) => {
+    if (currentlySpeakingId === msgId) {
+      stopSpeaking();
+      setCurrentlySpeakingId(null);
+    } else {
+      stopSpeaking();
+      setCurrentlySpeakingId(msgId);
+      speakText(
+        content,
+        () => setCurrentlySpeakingId(msgId),
+        () => setCurrentlySpeakingId(null)
+      );
+    }
+  };
+
   // Simple, safe text formatter for bullet points, bold and quotes
   const renderFormattedContent = (content: string) => {
     const lines = content.split('\n');
@@ -15,7 +39,30 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({ messages, isRu
     return lines.map((line, idx) => {
       // Empty line
       if (!line.trim()) {
-        return <div key={idx} style={{ height: '0.5rem' }} />;
+        return <div key={idx} style={{ height: '0.4rem' }} />;
+      }
+
+      // Markdown Headings
+      if (line.startsWith('### ')) {
+        return (
+          <h6 key={idx} className="fw-bold text-dark mt-3 mb-1.5" style={{ fontSize: '0.92rem' }}>
+            {renderInlineStyles(line.replace(/^###\s*/, ''))}
+          </h6>
+        );
+      }
+      if (line.startsWith('## ')) {
+        return (
+          <h5 key={idx} className="fw-bold text-dark mt-3 mb-1.5" style={{ fontSize: '1rem' }}>
+            {renderInlineStyles(line.replace(/^##\s*/, ''))}
+          </h5>
+        );
+      }
+      if (line.startsWith('# ')) {
+        return (
+          <h5 key={idx} className="fw-bold text-dark mt-3 mb-2">
+            {renderInlineStyles(line.replace(/^#\s*/, ''))}
+          </h5>
+        );
       }
 
       // Blockquote
@@ -36,7 +83,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({ messages, isRu
         return (
           <div key={idx} className="d-flex align-items-start gap-2 my-1 ps-2">
             <span className="text-primary mt-1" style={{ fontSize: '0.6rem' }}>●</span>
-            <span>{renderInlineStyles(text)}</span>
+            <span className="text-secondary">{renderInlineStyles(text)}</span>
           </div>
         );
       }
@@ -47,28 +94,32 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({ messages, isRu
         return (
           <div key={idx} className="d-flex align-items-start gap-2 my-1 ps-2">
             <span className="fw-bold text-primary small">{numMatch[1]}.</span>
-            <span>{renderInlineStyles(numMatch[2])}</span>
+            <span className="text-secondary">{renderInlineStyles(numMatch[2])}</span>
           </div>
         );
       }
 
       return (
-        <p key={idx} className="mb-2">
+        <p key={idx} className="mb-2 text-secondary">
           {renderInlineStyles(line)}
         </p>
       );
     });
   };
 
-  // Safe inline styling for **bold** and `code`
+  // Safe inline styling for **bold**, *italic*, and `code`
   const renderInlineStyles = (text: string) => {
-    const parts = text.split(/(\*\*.*?\*\*|`.*?`)/g);
+    // Split by bold (**...**), code (`...`), and italic (*...*)
+    const parts = text.split(/(\*\*.*?\*\*|`.*?`|\*.*?\*)/g);
 
     return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i} className="text-dark">{part.slice(2, -2)}</strong>;
+      if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+        return <strong key={i} className="text-dark fw-semibold">{part.slice(2, -2)}</strong>;
       }
-      if (part.startsWith('`') && part.endsWith('`')) {
+      if (part.startsWith('*') && part.endsWith('*') && part.length > 2 && !part.startsWith('**')) {
+        return <em key={i} className="text-secondary fst-italic">{part.slice(1, -1)}</em>;
+      }
+      if (part.startsWith('`') && part.endsWith('`') && part.length > 2) {
         return (
           <code key={i} className="px-1 py-0.5 bg-light border rounded text-primary small">
             {part.slice(1, -1)}
@@ -126,6 +177,29 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({ messages, isRu
                 <span className="small fw-semibold text-secondary">
                   {isUser ? 'Store Owner' : 'ResolveLoop AI'}
                 </span>
+                {!isUser && (
+                  <button
+                    type="button"
+                    className={`btn btn-link btn-sm p-0 d-inline-flex align-items-center gap-1 text-decoration-none ${
+                      currentlySpeakingId === msg.id ? 'text-primary fw-semibold' : 'text-muted'
+                    }`}
+                    onClick={() => handleToggleSpeech(msg.id, msg.content)}
+                    title={currentlySpeakingId === msg.id ? 'Stop speaking voice' : 'Listen to Alexa voice response'}
+                    style={{ fontSize: '0.7rem' }}
+                  >
+                    {currentlySpeakingId === msg.id ? (
+                      <>
+                        <VolumeX size={12} className="text-danger" />
+                        <span className="text-danger">Stop Voice</span>
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 size={12} />
+                        <span>Listen</span>
+                      </>
+                    )}
+                  </button>
+                )}
                 {msg.isVoiceInput && (
                   <span
                     className="badge bg-primary-subtle text-primary border border-primary-subtle d-inline-flex align-items-center gap-1"
